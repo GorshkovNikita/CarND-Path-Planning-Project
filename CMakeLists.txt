@@ -4,10 +4,11 @@ cmake_minimum_required (VERSION 3.5)
 
 add_definitions(-std=c++11)
 
+set(CMAKE_CXX_STANDARD 17)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp)
+set(sources src/main.cpp src/PathPlannerProtocol.cpp src/PathPlannerProtocol.h src/HighwayMap.cpp src/HighwayMap.h src/PathPlanner.cpp src/PathPlanner.h)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
