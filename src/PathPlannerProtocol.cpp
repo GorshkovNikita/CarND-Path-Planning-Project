@@ -3,8 +3,8 @@
 //
 
 #include "PathPlannerProtocol.h"
-#include "helpers.h"
 #include "json.hpp"
+#include "helpers.h"
 
 using nlohmann::json;
 
@@ -24,42 +24,39 @@ string PathPlannerProtocol::processMessage(string_view data) {
             if (event == "telemetry") {
                 // j[1] is the data JSON object
 
+
                 // Main car's localization Data
-                double car_x = j[1]["x"];
-                double car_y = j[1]["y"];
-                double car_s = j[1]["s"];
-                double car_d = j[1]["d"];
-                double car_yaw = j[1]["yaw"];
-                double car_speed = j[1]["speed"];
+                CarState car_state(j[1]["x"], j[1]["y"], j[1]["s"], j[1]["d"], j[1]["yaw"], j[1]["speed"]);
 
                 // Previous path data given to the Planner
-                auto previous_path_x = j[1]["previous_path_x"];
-                auto previous_path_y = j[1]["previous_path_y"];
+                vector<double> previous_path_x = j[1]["previous_path_x"];
+                vector<double> previous_path_y = j[1]["previous_path_y"];
                 // Previous path's end s and d values
                 double end_path_s = j[1]["end_path_s"];
                 double end_path_d = j[1]["end_path_d"];
 
                 // Sensor Fusion Data, a list of all other cars on the same side
                 //   of the road.
-                auto sensor_fusion = j[1]["sensor_fusion"];
+                vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
-                json msgJson;
-
-                vector<double> next_x_vals;
-                vector<double> next_y_vals;
-
-                /**
-                 * TODO: define a path made up of (x,y) points that the car will visit
-                 *   sequentially every .02 seconds
-                 */
-                double dist_inc = 0.25;
-                for (int i = 0; i < 50; ++i) {
-                    next_x_vals.push_back(car_x + (dist_inc * i) * cos(deg2rad(car_yaw)));
-                    next_y_vals.push_back(car_y + (dist_inc * i) * sin(deg2rad(car_yaw)));
+                vector<VehicleState> vehicles_states;
+                for (vector<double> vehicle_state : sensor_fusion) {
+                    VehicleState vehicleState(
+                            (int)vehicle_state[0], vehicle_state[1],
+                            vehicle_state[2], vehicle_state[3], vehicle_state[4],
+                            vehicle_state[5], vehicle_state[6]
+                    );
+                    vehicles_states.push_back(vehicleState);
                 }
 
-                msgJson["next_x"] = next_x_vals;
-                msgJson["next_y"] = next_y_vals;
+                SystemState systemState(car_state, vehicles_states, previous_path_x, previous_path_y, end_path_s, end_path_d);
+
+
+                Path path = pathPlanner.generate_path(systemState);
+
+                json msgJson;
+                msgJson["next_x"] = path.x;
+                msgJson["next_y"] = path.y;
 
                 auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
